@@ -169,14 +169,13 @@ def execute(query, headers=0, credentials=None):
 #### 7. sqlite.py
 ##### Function to execute sql query other than 'SELECT' and all helper functions:
 ```bazaar
-# Function to execute sql query other than 'SELECT'
 def execute_all_sql(query, headers=0, credentials=None):
     """
-    Execute INSERT, UPDATE, DELETE.
-    :param query: 
-    :param headers: 
-    :param credentials: 
-    :return: 
+    Execute INSERT, UPDATE, DELETE
+    :param query:
+    :param headers:
+    :param credentials:
+    :return:
     """
 
     # fetch all data
@@ -204,18 +203,30 @@ def execute_all_sql(query, headers=0, credentials=None):
     cols = tuple(stmt)
 
     records = from_sqlite(cursor, from_)
+    print("1000.1 records: {}".format(records))
+
     records.insert(0, cols)
 
-    # Upload records to google spreadsheet
+    # Append records to google spreadsheet
     # retrieve sheet_id and sheet name from url
     sheet_meta = get_sheet_meta(credentials, from_)
+    print("meta: {}".format(sheet_meta))
     sheet_id = sheet_meta[0]
     sheet_name = sheet_meta[1]
 
-    write_gsheet(credentials, sheet_id, sheet_name, records)
-    conn.commit()
+    # If query is 'INSERT', append new data in the same worksheet
+    parsed = sqlparse.parse(query)[0]
+    tok = parsed.tokens
+    first_word = str(tok[0])
 
-    return
+    if first_word == 'INSERT':
+        write_gsheet(credentials, sheet_id, sheet_name, records)
+
+    # If not 'INSERT', upload updated record in a new worksheet
+    else:
+        write_new_worksheet(credentials, sheet_id, sheet_name, records)
+
+    conn.commit()
 
 ```
 ##### Helper functions:
@@ -244,14 +255,47 @@ def from_sqlite(cursor, table):
 ```bazaar
 def write_gsheet(creds, sheet_id, sheet_name, values):
     """
-    Write to google spreadsheet.
-    :param creds: 
-    :param sheet_id: 
-    :param sheet_name: 
-    :param values: 
-    :return: 
+    Append data in same worksheet
+    :param creds:
+    :param sheet_id:
+    :param sheet_name:
+    :param values:
+    :return:
     """
+    try:
+        value_range_body = {
+                "majorDimension": "ROWS",
+                'values': values
+            }
 
+        # Call the Sheets API
+        service = discovery.build('sheets', 'v4', credentials=creds)
+        sheet = service.spreadsheets()
+
+        # upload data into google spreadsheet
+        # upload in the same worksheet
+        request = sheet.values().update(spreadsheetId=sheet_id, valueInputOption="USER_ENTERED",
+                                        range=sheet_name + '!A1', body=value_range_body)
+
+        response = request.execute()
+
+        print("Updating done successfully!")
+        pprint(response)
+
+    except Exception as e:
+        print("Error: {}".format(e))
+        
+```
+```bazaar
+def write_new_worksheet(creds, sheet_id, sheet_name, values):
+    """
+    Append data into new worksheet.
+    :param creds:
+    :param sheet_id:
+    :param sheet_name:
+    :param values:
+    :return:
+    """
 
     try:
         value_range_body = {
@@ -263,21 +307,22 @@ def write_gsheet(creds, sheet_id, sheet_name, values):
         service = discovery.build('sheets', 'v4', credentials=creds)
         sheet = service.spreadsheets()
 
-        # clear the sheet before uploading
-        sheet.values().clear(spreadsheetId=sheet_id, range=sheet_name).execute()
-        time.sleep(1)
+        # todo: Upload in a new worksheet
+        # Add a new sheet and upload data into the new sheet
+        new_sheet = "{}_1".format(sheet_name)
+        add_sheets(creds, sheet_id, new_sheet)
 
-        # upload data into google spreadsheet
         request = sheet.values().update(spreadsheetId=sheet_id, valueInputOption="USER_ENTERED",
-                                        range=sheet_name + '!A1', body=value_range_body)
+                                        range=new_sheet + '!A1', body=value_range_body)
+
         response = request.execute()
 
-        print("Updating done successfully!")
+        print("Updated in a new sheet {} doen successfully!".format("{}_1".format(sheet_name)))
         pprint(response)
 
     except Exception as e:
         print("Error: {}".format(e))
-        
+
 ```
 
 ```bazaar
@@ -362,6 +407,46 @@ def get_col_names(cursor, table):
     cursor.execute('SELECT * FROM "{table}"'.format(table=table))
     return [member[0] for member in cursor.description]
     
+```
+```bazaar
+def add_sheets(creds, gsheet_id, sheet_name):
+    """
+    Add new worksheet
+    :param creds:
+    :param gsheet_id:
+    :param sheet_name:
+    :return:
+    """
+
+    service = discovery.build('sheets', 'v4', credentials=creds)
+    spreadsheets = service.spreadsheets()
+
+
+    try:
+        request_body = {
+            'requests': [{
+                'addSheet': {
+                    'properties': {
+                        'title': sheet_name,
+                        'tabColor': {
+                            'red': 0.44,
+                            'green': 0.99,
+                            'blue': 0.50
+                        }
+                    }
+                }
+            }]
+        }
+
+        response = spreadsheets.batchUpdate(
+            spreadsheetId=gsheet_id,
+            body=request_body
+        ).execute()
+
+        return response
+    except Exception as e:
+        print(e)
+
 ```
 
 #### 8. url.py
