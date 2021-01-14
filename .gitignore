@@ -1,0 +1,8 @@
+/venv
+.idea
+
+# Compiled python modules.
+__pycache__
+
+
+/.pytest_cache
