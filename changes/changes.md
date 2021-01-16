@@ -73,17 +73,8 @@ Modified by (JG):
         return self
  
 ```
- #### 4. query.py
- ```bazaar
-# import libraries by (JG):
----------------------------
-import sqlparse
-import re
-from gsheetsdb.auth import get_credentials_from_auth
-
-```      
-
-#### 5. sqlite.py
+ 
+#### 4. sqlite.py
 ```bazaar
 # import libraries by (JG):
 --------------------------
@@ -96,7 +87,7 @@ from gsheetsdb.url import url_from_sql
 from six.moves.urllib import parse
 ```
 
-#### 6. sqlite.py
+#### 5. sqlite.py
 ```bazaar
 Original (BD):
 --------------
@@ -166,7 +157,7 @@ def execute(query, headers=0, credentials=None):
 
 ```
 
-#### 7. sqlite.py
+#### 6. sqlite.py
 ##### Function to execute sql query other than 'SELECT' and all helper functions:
 ```bazaar
 def execute_all_sql(query, headers=0, credentials=None):
@@ -449,7 +440,7 @@ def add_sheets(creds, gsheet_id, sheet_name):
 
 ```
 
-#### 8. url.py
+#### 7. url.py
 ##### Added function to extract url from any sql statement
 ```bazaar
 # Function to extract url from any sql statement

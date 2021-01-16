@@ -21,11 +21,6 @@ from gsheetsdb.types import Type
 from gsheetsdb.url import extract_url, get_url
 from gsheetsdb.utils import format_gsheet_error, format_moz_error
 
-# import libraries by (JG)
-import sqlparse
-import re
-from gsheetsdb.auth import get_credentials_from_auth
-
 logger = logging.getLogger(__name__)
 
 # the JSON payload has this in the beginning
